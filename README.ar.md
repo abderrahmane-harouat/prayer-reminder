@@ -1,6 +1,6 @@
 <div dir="rtl">
 
-# منبّه الصلاة (Prayer Reminder)
+# منبّه الصلاة (Prayer Notifier)
 
 [English](README.md) · **العربية**
 
@@ -53,8 +53,8 @@
 <div dir="ltr">
 
 ```sh
-git clone https://github.com/abderrahmane-harouat/prayer-reminder.git
-cd prayer-reminder
+git clone https://github.com/abderrahmane-harouat/prayer-notifier.git
+cd prayer-notifier
 ./gradlew :app:assembleDebug        # build the APK
 ./gradlew :app:testDebugUnitTest    # run the unit tests
 ./gradlew :app:installDebug         # install on a connected device or emulator
@@ -96,5 +96,11 @@ cd prayer-reminder
 - الأيقونات: [Phosphor Icons](https://phosphoricons.com) (رخصة MIT، نصّها في `app/src/main/assets/licenses/`)
 - الخطوط (رخصة SIL Open Font، نصوصها في `app/src/main/assets/licenses/`): Yeseva One وTenor Sans وRaleway وأميري
 - الخط العربي (اختياري، غير مرفق): [ثمانية](https://font.thmanyah.com/)
+
+## الترخيص
+
+الشيفرة منشورة بموجب [رخصة MIT](LICENSE) © 2026 Abderrahmane Harouat.
+
+تحتفظ المواد المرفقة من أطراف أخرى برخصها الخاصة: الخطوط (رخصة SIL Open Font) وأيقونات Phosphor (رخصة MIT)، ونصوص رخصها في `app/src/main/assets/licenses/`. أما خط ثمانية فليس جزءًا من هذا المستودع ولا تشمله رخصة MIT.
 
 </div>

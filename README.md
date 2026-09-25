@@ -1,4 +1,4 @@
-# Prayer Reminder
+# Prayer Notifier
 
 **English** · [العربية](README.ar.md)
 
@@ -49,8 +49,8 @@ The app has no accounts, analytics, ads or tracking. Your coordinates are sent o
 Requirements: Android Studio (or the command line), **JDK 17–21** (newer JDKs are not supported by this Gradle/AGP version), Android SDK 36. The app runs on Android 8.0 (API 26) and later.
 
 ```sh
-git clone https://github.com/abderrahmane-harouat/prayer-reminder.git
-cd prayer-reminder
+git clone https://github.com/abderrahmane-harouat/prayer-notifier.git
+cd prayer-notifier
 ./gradlew :app:assembleDebug        # build the APK
 ./gradlew :app:testDebugUnitTest    # run the unit tests
 ./gradlew :app:installDebug         # install on a connected device or emulator
@@ -105,3 +105,9 @@ archive/                     # the original Flutter version of the app (not main
 - Icons: [Phosphor Icons](https://phosphoricons.com) (MIT, license in `app/src/main/assets/licenses/`)
 - Fonts (SIL Open Font License, licenses in `app/src/main/assets/licenses/`): [Yeseva One](https://fonts.google.com/specimen/Yeseva+One), [Tenor Sans](https://fonts.google.com/specimen/Tenor+Sans), [Raleway](https://fonts.google.com/specimen/Raleway), [Amiri](https://fonts.google.com/specimen/Amiri)
 - Arabic typeface (optional, not included): [Thmanyah](https://font.thmanyah.com/)
+
+## License
+
+The code is released under the [MIT License](LICENSE) © 2026 Abderrahmane Harouat.
+
+Bundled third-party assets keep their own licenses: the fonts (SIL Open Font License) and Phosphor icons (MIT), with their license texts in `app/src/main/assets/licenses/`. The Thmanyah font is not part of this repository and is not covered by the MIT License.

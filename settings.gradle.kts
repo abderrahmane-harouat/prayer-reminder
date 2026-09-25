@@ -12,5 +12,5 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "prayer-reminder"
+rootProject.name = "prayer-notifier"
 include(":app")
