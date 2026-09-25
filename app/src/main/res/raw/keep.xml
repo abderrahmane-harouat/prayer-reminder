@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Thmanyah fonts are looked up by name (they are optional and
+     git-ignored), so keep them if resource shrinking is ever enabled. -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@font/thmanyah_*" />

@@ -1,0 +1,181 @@
+<resources>
+    <string name="app_name">منبّه الصلاة</string>
+
+    <string name="prayer_fajr">الفجر</string>
+    <string name="prayer_dhuhr">الظهر</string>
+    <string name="prayer_asr">العصر</string>
+    <string name="prayer_maghrib">المغرب</string>
+    <string name="prayer_isha">العشاء</string>
+
+    <string-array name="hijri_months">
+        <item>محرّم</item>
+        <item>صفر</item>
+        <item>ربيع الأول</item>
+        <item>ربيع الآخر</item>
+        <item>جمادى الأولى</item>
+        <item>جمادى الآخرة</item>
+        <item>رجب</item>
+        <item>شعبان</item>
+        <item>رمضان</item>
+        <item>شوّال</item>
+        <item>ذو القعدة</item>
+        <item>ذو الحجة</item>
+    </string-array>
+
+    <string name="ok">حسنًا</string>
+    <string name="cancel">إلغاء</string>
+    <string name="save">حفظ</string>
+    <string name="back">رجوع</string>
+    <string name="settings">الإعدادات</string>
+    <string name="try_again">إعادة المحاولة</string>
+    <string name="offline">بدون اتصال</string>
+    <string name="current_location">الموقع الحالي</string>
+
+    <string name="cd_change_location">تغيير الموقع، %1$s</string>
+    <string name="countdown_in">بعد %1$s</string>
+    <string name="todays_prayers">صلوات اليوم</string>
+    <string name="prayers">الصلوات</string>
+    <string name="next">التالية</string>
+    <string name="silent">صامت</string>
+    <plurals name="reminds_before">
+        <item quantity="zero">تذكير عند وقت الصلاة</item>
+        <item quantity="one">تذكير قبل دقيقة واحدة</item>
+        <item quantity="two">تذكير قبل دقيقتين</item>
+        <item quantity="few">تذكير قبل %1$d دقائق</item>
+        <item quantity="many">تذكير قبل %1$d دقيقة</item>
+        <item quantity="other">تذكير قبل %1$d دقيقة</item>
+    </plurals>
+    <string name="today">اليوم</string>
+    <string name="go_to_today">الذهاب إلى اليوم</string>
+    <string name="pick_a_date">اختيار تاريخ</string>
+    <string name="places">الأماكن</string>
+    <string name="save_offline">الحفظ دون اتصال</string>
+    <string name="saving_offline_data">جارٍ حفظ البيانات</string>
+    <string name="months_progress">%1$d / %2$d شهرًا</string>
+
+    <string name="location_needed_title">الموقع مطلوب</string>
+    <string name="location_needed_desc">اسمح بالوصول إلى الموقع لعرض مواقيت الصلاة في منطقتك.</string>
+    <string name="share_location">مشاركة الموقع</string>
+    <string name="location_off_title">الموقع متوقف</string>
+    <string name="location_off_desc">الوصول إلى الموقع متوقف لهذا التطبيق. افتح الإعدادات لتفعيله من جديد.</string>
+    <string name="open_settings">فتح الإعدادات</string>
+    <string name="location_services_off_title">خدمات الموقع متوقفة</string>
+    <string name="location_services_off_desc">فعّل الموقع في جهازك لعرض مواقيت الصلاة في منطقتك.</string>
+    <string name="turn_on_location">تفعيل الموقع</string>
+    <string name="no_fix_title">تعذّر تحديد الموقع</string>
+    <string name="no_fix_desc">لا توجد إشارة GPS حاليًا. في المحاكي، حدّد موقعًا من عناصر التحكم الإضافية (⋯ ← الموقع).</string>
+    <string name="no_saved_data_title">لا توجد بيانات محفوظة</string>
+    <string name="no_saved_data_desc">لا يوجد اتصال بالإنترنت ولم يُحفظ شيء لهذا الشهر بعد.</string>
+    <string name="saved_places">الأماكن المحفوظة</string>
+    <string name="something_wrong">حدث خطأ ما</string>
+    <string name="unknown_error">خطأ غير معروف</string>
+
+    <!-- Home: today shortcut, locating, notices -->
+    <string name="locating">جارٍ تحديد الموقع…</string>
+    <string name="back_to_today">العودة إلى اليوم</string>
+    <string name="notice_location_updated">تم تحديث الموقع · %1$s</string>
+    <string name="notice_location_off">خدمة الموقع متوقفة في هذا الهاتف.</string>
+    <string name="notice_no_fix">تعذّر تحديد موقعك. حاول بعد لحظات.</string>
+    <string name="notice_load_failed">تعذّر تحميل مواقيت الصلاة. تحقق من الاتصال.</string>
+    <string name="notice_permission_locked">إذن الموقع متوقف لهذا التطبيق.</string>
+
+    <!-- Home: connection button -->
+    <string name="net_wifi">واي فاي</string>
+    <string name="net_cellular">بيانات الجوال</string>
+    <string name="net_ethernet">إيثرنت</string>
+    <string name="net_online">متصل</string>
+    <string name="checking">جارٍ التحقق…</string>
+    <string name="notice_connected">متصل · %1$s</string>
+    <string name="notice_server_unreachable">متصل عبر %1$s، لكن خادم المواقيت لا يستجيب.</string>
+    <string name="notice_offline">لا يوجد إنترنت. تُعرض المواقيت المحفوظة.</string>
+    <string name="internet_settings">الإعدادات</string>
+    <string name="cd_connection">الاتصال: %1$s. اضغط للتحقق.</string>
+
+    <string name="no_saved_places">لا توجد أماكن محفوظة بعد.</string>
+    <string name="place_n">المكان %1$d</string>
+    <string name="use_current_location">استخدام الموقع الحالي</string>
+
+    <string name="save_offline_title">حفظ البيانات دون اتصال</string>
+    <string name="save_offline_desc">نزّل مواقيت الصلاة لعشر سنوات ليعمل التطبيق دون إنترنت. يستغرق ذلك بضع دقائق.</string>
+    <string name="download_now">التنزيل الآن</string>
+    <string name="later">لاحقًا</string>
+    <string name="offline_all_saved_desc">كل شيء محفوظ لهذا المكان. يعمل التطبيق دون إنترنت.</string>
+    <string name="download_remaining">تنزيل الباقي</string>
+    <string name="done">تم</string>
+
+    <string name="section_prayer_times">مواقيت الصلاة</string>
+    <string name="section_notifications">التنبيهات</string>
+    <string name="section_offline">البيانات دون اتصال</string>
+    <string name="section_language">اللغة</string>
+    <!-- Settings: grouped prayer rows -->
+    <string name="before_every_prayer">قبل كل صلاة</string>
+    <string name="custom_per_prayer">مخصص لكل صلاة — اضغط على صلاة بالأسفل لضبطها.</string>
+    <string name="section_calendar">التقويم</string>
+    <string name="reminder">التذكير</string>
+    <string name="time_correction">تعديل الوقت</string>
+    <string name="on_time">عند الوقت</string>
+    <string name="summary_time">الوقت %1$s</string>
+    <string name="cd_reminder_on">تفعيل تذكير %1$s</string>
+    <string name="cd_reminder_off">إيقاف تذكير %1$s</string>
+
+    <string name="hijri_correction">تعديل التاريخ الهجري</string>
+    <string name="prayer_correction">تعديل %1$s</string>
+    <string name="hijri_correction_desc">تبدأ بعض المناطق الشهر الهجري قبل يوم أو بعده.</string>
+    <string name="prayer_correction_desc">قدّم وقت هذه الصلاة أو أخّره.</string>
+    <string name="no_change">بدون تعديل</string>
+    <plurals name="offset_minutes">
+        <item quantity="zero">%1$s دقيقة</item>
+        <item quantity="one">%1$s دقيقة</item>
+        <item quantity="two">%1$s دقيقتان</item>
+        <item quantity="few">%1$s دقائق</item>
+        <item quantity="many">%1$s دقيقة</item>
+        <item quantity="other">%1$s دقيقة</item>
+    </plurals>
+    <plurals name="offset_days">
+        <item quantity="zero">%1$s يوم</item>
+        <item quantity="one">%1$s يوم</item>
+        <item quantity="two">%1$s يومان</item>
+        <item quantity="few">%1$s أيام</item>
+        <item quantity="many">%1$s يومًا</item>
+        <item quantity="other">%1$s يوم</item>
+    </plurals>
+    <string name="off">متوقف</string>
+    <string name="decrease">إنقاص</string>
+    <string name="increase">زيادة</string>
+    <string name="prayer_reminders">تذكيرات الصلاة</string>
+    <plurals name="minutes_before">
+        <item quantity="zero">عند وقت الصلاة</item>
+        <item quantity="one">قبل دقيقة واحدة</item>
+        <item quantity="two">قبل دقيقتين</item>
+        <item quantity="few">قبل %1$d دقائق</item>
+        <item quantity="many">قبل %1$d دقيقة</item>
+        <item quantity="other">قبل %1$d دقيقة</item>
+    </plurals>
+    <string name="at_prayer_time">عند وقت الصلاة</string>
+    <string name="sixty_min">60 دقيقة</string>
+
+    <string name="notifications_off">التنبيهات متوقفة</string>
+    <string name="exact_alarms_denied">المنبّهات الدقيقة مرفوضة</string>
+    <string name="permission_needed">تحتاج تذكيرات الصلاة إلى إذن من النظام.</string>
+    <string name="enable">تفعيل</string>
+
+    <string name="location_label">الموقع</string>
+    <string name="no_location_yet">لم يُحدَّد موقع بعد</string>
+    <string name="saved_label">المحفوظ</string>
+    <string name="nothing_saved">لم يُحفظ شيء بعد</string>
+    <string name="full_offline_saved">حُفظت جميع البيانات</string>
+    <string name="months_saved">حُفظ %1$d من %2$d شهرًا</string>
+    <string name="range_label">المدة</string>
+    <string name="works_offline">يعمل دون إنترنت بعد الحفظ.</string>
+    <string name="attribution">مواقيت الصلاة من Aladhan</string>
+    <string name="attribution_font">الخط العربي: ثمانية</string>
+
+    <string name="app_language">لغة التطبيق</string>
+    <string name="language_system">لغة النظام</string>
+    <string name="language_system_desc">اتباع لغة الهاتف</string>
+
+    <string name="notif_title">وقت الصلاة</string>
+    <string name="notif_body">حان وقت صلاة %1$s · %2$s</string>
+    <string name="channel_name">مواقيت الصلاة</string>
+    <string name="channel_desc">تذكيرات بمواقيت الصلاة</string>
+</resources>

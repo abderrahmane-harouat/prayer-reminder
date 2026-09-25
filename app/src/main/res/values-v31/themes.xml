@@ -1,0 +1,13 @@
+<resources>
+    <!-- Android 12+ launch splash: the icon art animates on warm black. -->
+    <style name="Theme.PrayerNotifier" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">@color/wonder_black</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:windowSplashScreenBackground">@color/wonder_black</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/avd_splash</item>
+        <item name="android:windowSplashScreenAnimationDuration">1000</item>
+    </style>
+</resources>
