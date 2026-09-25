@@ -114,6 +114,19 @@ class PrayerAlarmHandlerTest {
         assertTrue(scheduler.calls.isEmpty())
     }
 
+    @Test fun `reminder before the prayer says how many minutes are left`() = runTest {
+        handler.onAlarmFired("Maghrib", "18:52", leadMinutes = 5)
+
+        val post = notifier.posts.single()
+        assertEquals("Prayer reminder", post.second)
+        assertEquals("5 minutes until Maghrib · 18:52", post.third)
+    }
+
+    @Test fun `one minute is singular`() = runTest {
+        handler.onAlarmFired("Fajr", "05:12", leadMinutes = 1)
+        assertEquals("1 minute until Fajr · 05:12", notifier.posts.single().third)
+    }
+
     @Test fun `fired alarm shows the right notification`() = runTest {
         handler.onAlarmFired("Maghrib", "18:52")
 

@@ -41,9 +41,9 @@
         <item quantity="zero">تذكير عند وقت الصلاة</item>
         <item quantity="one">تذكير قبل دقيقة واحدة</item>
         <item quantity="two">تذكير قبل دقيقتين</item>
-        <item quantity="few">تذكير قبل %1$d دقائق</item>
-        <item quantity="many">تذكير قبل %1$d دقيقة</item>
-        <item quantity="other">تذكير قبل %1$d دقيقة</item>
+        <item quantity="few">تذكير قبل %1$s دقائق</item>
+        <item quantity="many">تذكير قبل %1$s دقيقة</item>
+        <item quantity="other">تذكير قبل %1$s دقيقة</item>
     </plurals>
     <string name="today">اليوم</string>
     <string name="go_to_today">الذهاب إلى اليوم</string>
@@ -51,7 +51,7 @@
     <string name="places">الأماكن</string>
     <string name="save_offline">الحفظ دون اتصال</string>
     <string name="saving_offline_data">جارٍ حفظ البيانات</string>
-    <string name="months_progress">%1$d / %2$d شهرًا</string>
+    <string name="months_progress">%1$s / %2$s شهرًا</string>
 
     <string name="location_needed_title">الموقع مطلوب</string>
     <string name="location_needed_desc">اسمح بالوصول إلى الموقع لعرض مواقيت الصلاة في منطقتك.</string>
@@ -92,7 +92,7 @@
     <string name="cd_connection">الاتصال: %1$s. اضغط للتحقق.</string>
 
     <string name="no_saved_places">لا توجد أماكن محفوظة بعد.</string>
-    <string name="place_n">المكان %1$d</string>
+    <string name="place_n">المكان %1$s</string>
     <string name="use_current_location">استخدام الموقع الحالي</string>
 
     <string name="save_offline_title">حفظ البيانات دون اتصال</string>
@@ -147,9 +147,9 @@
         <item quantity="zero">عند وقت الصلاة</item>
         <item quantity="one">قبل دقيقة واحدة</item>
         <item quantity="two">قبل دقيقتين</item>
-        <item quantity="few">قبل %1$d دقائق</item>
-        <item quantity="many">قبل %1$d دقيقة</item>
-        <item quantity="other">قبل %1$d دقيقة</item>
+        <item quantity="few">قبل %1$s دقائق</item>
+        <item quantity="many">قبل %1$s دقيقة</item>
+        <item quantity="other">قبل %1$s دقيقة</item>
     </plurals>
     <string name="at_prayer_time">عند وقت الصلاة</string>
     <string name="sixty_min">60 دقيقة</string>
@@ -164,7 +164,7 @@
     <string name="saved_label">المحفوظ</string>
     <string name="nothing_saved">لم يُحفظ شيء بعد</string>
     <string name="full_offline_saved">حُفظت جميع البيانات</string>
-    <string name="months_saved">حُفظ %1$d من %2$d شهرًا</string>
+    <string name="months_saved">حُفظ %1$s من %2$s شهرًا</string>
     <string name="range_label">المدة</string>
     <string name="works_offline">يعمل دون إنترنت بعد الحفظ.</string>
     <string name="attribution">مواقيت الصلاة من Aladhan</string>
@@ -176,6 +176,15 @@
 
     <string name="notif_title">وقت الصلاة</string>
     <string name="notif_body">حان وقت صلاة %1$s · %2$s</string>
+    <string name="notif_title_reminder">تذكير بالصلاة</string>
+    <plurals name="notif_body_before">
+        <item quantity="zero">حان وقت صلاة %2$s · %3$s</item>
+        <item quantity="one">تبقّت دقيقة واحدة على صلاة %2$s · %3$s</item>
+        <item quantity="two">تبقّت دقيقتان على صلاة %2$s · %3$s</item>
+        <item quantity="few">تبقّت %1$s دقائق على صلاة %2$s · %3$s</item>
+        <item quantity="many">تبقّت %1$s دقيقة على صلاة %2$s · %3$s</item>
+        <item quantity="other">تبقّت %1$s دقيقة على صلاة %2$s · %3$s</item>
+    </plurals>
     <string name="channel_name">مواقيت الصلاة</string>
     <string name="channel_desc">تذكيرات بمواقيت الصلاة</string>
 </resources>

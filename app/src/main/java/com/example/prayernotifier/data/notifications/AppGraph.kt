@@ -42,7 +42,15 @@ class AppGraph(context: Context) {
 /** Notification text in the app's chosen language, resolved at fire time. */
 private class LocalizedNotificationTexts(private val app: Context) : NotificationTexts {
     private fun res() = AppLanguage.localizedContext(app).resources
-    override fun title(): String = res().getString(R.string.notif_title)
-    override fun body(prayer: String, time: String): String =
-        res().getString(R.string.notif_body, res().getString(prayerNameRes(prayer)), time)
+    override fun title(leadMinutes: Int): String = res().getString(
+        if (leadMinutes > 0) R.string.notif_title_reminder else R.string.notif_title
+    )
+    override fun body(prayer: String, time: String, leadMinutes: Int): String {
+        val name = res().getString(prayerNameRes(prayer))
+        return if (leadMinutes > 0) {
+            res().getQuantityString(R.plurals.notif_body_before, leadMinutes, leadMinutes.toString(), name, time)
+        } else {
+            res().getString(R.string.notif_body, name, time)
+        }
+    }
 }

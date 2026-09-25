@@ -133,15 +133,22 @@ fun SettingsScreen(onBack: () -> Unit) {
 
     // Every authorization pops the system dialog first — system settings
     // only when the dialog can no longer appear (denied twice).
+    // Always the real system dialog. Settings opens only when Android refused
+    // to show it at all (denied twice before) - the one case with no dialog.
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) {
+    ) { granted ->
+        val blocked = !granted && answeredNotificationsBefore(context) && !notificationRationale(context)
+        markNotificationsAnswered(context)
         vm.refreshCapabilities(notificationsAllowed = postNotificationsAllowed(context))
+        if (blocked) openNotificationSettings(context)
     }
     fun requestSystemAuthorization() {
-        if (Build.VERSION.SDK_INT >= 33 && !isNotificationLocked(context)) {
+        if (Build.VERSION.SDK_INT >= 33) {
             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         } else {
+            // Before Android 13 notifications have no runtime dialog; they can
+            // only have been switched off in system settings.
             openNotificationSettings(context)
         }
     }
@@ -497,7 +504,7 @@ private fun PrayerRow(
             pluralStringResource(
                 R.plurals.minutes_before,
                 reminder.prePrayerReminderMinutes,
-                reminder.prePrayerReminderMinutes
+                reminder.prePrayerReminderMinutes.toString()
             )
         }
     } else {
@@ -562,7 +569,7 @@ private fun OfflineCard(state: SettingsUiState, onDownload: () -> Unit) {
             value = when {
                 status == null -> stringResource(R.string.nothing_saved)
                 status.isCached -> stringResource(R.string.full_offline_saved)
-                else -> stringResource(R.string.months_saved, status.cachedMonths, status.totalMonths)
+                else -> stringResource(R.string.months_saved, status.cachedMonths.toString(), status.totalMonths.toString())
             },
             trailingContent = if (status?.isCached == true) {
                 {
@@ -597,7 +604,7 @@ private fun OfflineCard(state: SettingsUiState, onDownload: () -> Unit) {
                 )
                 Spacer(Modifier.height(WonderSpacing.x8))
                 Text(
-                    text = stringResource(R.string.months_progress, state.downloadProgress, state.downloadTotal),
+                    text = stringResource(R.string.months_progress, state.downloadProgress.toString(), state.downloadTotal.toString()),
                     style = MaterialTheme.typography.bodySmall,
                     color = WonderAccent2
                 )
@@ -812,30 +819,25 @@ private fun postNotificationsAllowed(context: Context): Boolean {
     ) == PackageManager.PERMISSION_GRANTED
 }
 
-/**
- * True when the notification popup will no longer appear (denied twice).
- * Same rationale + one-bit-memory pattern as the location flow.
- */
-private fun isNotificationLocked(context: Context): Boolean {
-    if (Build.VERSION.SDK_INT < 33 || postNotificationsAllowed(context)) return false
+private fun notificationRationale(context: Context): Boolean {
+    if (Build.VERSION.SDK_INT < 33) return false
     val activity = context as? Activity ?: return false
-    val rationale = ActivityCompat.shouldShowRequestPermissionRationale(
+    return ActivityCompat.shouldShowRequestPermissionRationale(
         activity, Manifest.permission.POST_NOTIFICATIONS
     )
-    val prefs = context.getSharedPreferences(NOTIF_PERM_PREFS, Context.MODE_PRIVATE)
-    if (rationale) {
-        prefs.edit().putBoolean(NOTIF_ASKED_BEFORE, true).apply()
-        return false
-    }
-    val askedBefore = prefs.getBoolean(NOTIF_ASKED_BEFORE, false)
-    if (!askedBefore) {
-        prefs.edit().putBoolean(NOTIF_ASKED_BEFORE, true).apply()
-    }
-    return askedBefore
+}
+
+/** Set only after the user actually answered the dialog, never before. */
+private fun answeredNotificationsBefore(context: Context): Boolean =
+    context.getSharedPreferences(NOTIF_PERM_PREFS, Context.MODE_PRIVATE).getBoolean(NOTIF_ANSWERED, false)
+
+private fun markNotificationsAnswered(context: Context) {
+    context.getSharedPreferences(NOTIF_PERM_PREFS, Context.MODE_PRIVATE)
+        .edit().putBoolean(NOTIF_ANSWERED, true).apply()
 }
 
 private const val NOTIF_PERM_PREFS = "settings_notif_perm"
-private const val NOTIF_ASKED_BEFORE = "asked_before"
+private const val NOTIF_ANSWERED = "notifications_answered"
 
 private fun openNotificationSettings(context: Context) {
     val intent = if (Build.VERSION.SDK_INT >= 26) {

@@ -5,9 +5,11 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.location.LocationManager
 import android.net.Uri
 import android.provider.Settings as SystemSettings
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.core.EaseOutCubic
@@ -67,6 +69,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -88,6 +91,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.location.LocationManagerCompat
 import androidx.core.os.ConfigurationCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -124,6 +128,11 @@ import com.example.prayernotifier.ui.theme.WonderGreyStrong
 import com.example.prayernotifier.ui.theme.WonderOffWhite
 import com.example.prayernotifier.ui.theme.WonderSpacing
 import com.example.prayernotifier.ui.theme.WonderWhite
+import com.google.android.gms.common.api.ResolvableApiException
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.LocationSettingsRequest
+import com.google.android.gms.location.Priority
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -184,64 +193,105 @@ fun HomeScreen(visible: Boolean, onOpenSettings: () -> Unit) {
         onDispose { lifecycle.lifecycle.removeObserver(observer) }
     }
 
+    // Any system dialog of the first-run location step on screen: the
+    // notification request waits for it, so dialogs never stack.
+    var locationDialogOpen by remember { mutableStateOf(false) }
+
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { grants ->
+        locationDialogOpen = false
         val granted = grants.values.any { it }
-        if (granted) {
-            vm.refreshLocation()
-        } else {
-            vm.onPermissionResult(granted = false, locked = isPermissionLocked(context))
-        }
+        // Blocked = Android answered without showing the dialog (denied twice
+        // before). Only then does the app point to Settings, and only on tap.
+        val blocked = !granted && answeredLocationBefore(context) && !locationRationale(context)
+        markLocationAnswered(context)
+        vm.onPermissionResult(granted = granted, locked = blocked)
     }
 
-    /** "Share location" entry point: pop the system dialog when possible,
-        otherwise route to app settings — never a dead tap. */
+    /** Always the real system dialog; Android decides whether it can show. */
+    fun askLocationPermission() {
+        locationDialogOpen = true
+        permissionLauncher.launch(
+            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+        )
+    }
+
+    // "Turn on device location?" — Google Play services' in-app dialog, so
+    // switching location on never means leaving the app.
+    val locationSettingsLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        locationDialogOpen = false
+        if (result.resultCode == Activity.RESULT_OK) vm.refreshLocation()
+    }
+
+    fun turnOnLocation() {
+        val request = LocationSettingsRequest.Builder()
+            .addLocationRequest(LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 10_000L).build())
+            .setAlwaysShow(true)
+            .build()
+        locationDialogOpen = true
+        LocationServices.getSettingsClient(context).checkLocationSettings(request)
+            .addOnSuccessListener {
+                locationDialogOpen = false
+                vm.refreshLocation()
+            }
+            .addOnFailureListener { e ->
+                if (e is ResolvableApiException) {
+                    locationSettingsLauncher.launch(IntentSenderRequest.Builder(e.resolution).build())
+                } else {
+                    // No Play services dialog available on this device.
+                    locationDialogOpen = false
+                    openLocationSettings(context)
+                }
+            }
+    }
+
+    /** "Use current location" and every retry: permission, then location on, then fix. */
     fun requestLocation() {
         when {
-            hasLocationPermission(context) -> vm.refreshLocation()
-            isPermissionLocked(context) -> vm.onPermissionPermanentlyDenied()
-            else -> permissionLauncher.launch(
-                arrayOf(
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
-                )
-            )
+            !hasLocationPermission(context) -> askLocationPermission()
+            !isLocationOn(context) -> turnOnLocation()
+            else -> vm.refreshLocation()
         }
     }
 
     LaunchedEffect(state.askForPermission) {
+        // First run: the permission dialog comes first, before anything else.
         if (state.askForPermission) {
-            // First-run auto request (no tap yet) — same routing as a tap.
-            if (hasLocationPermission(context) || isPermissionLocked(context)) {
-                vm.onPermissionResult(
-                    granted = hasLocationPermission(context),
-                    locked = isPermissionLocked(context)
-                )
+            if (hasLocationPermission(context)) {
+                vm.onPermissionResult(granted = true, locked = false)
             } else {
-                permissionLauncher.launch(
-                    arrayOf(
-                        Manifest.permission.ACCESS_FINE_LOCATION,
-                        Manifest.permission.ACCESS_COARSE_LOCATION
-                    )
-                )
-                // The result callback clears the flag.
+                askLocationPermission()
             }
+        }
+    }
+
+    // Location switched off: show the in-app "turn on" dialog by itself,
+    // once per launch; after that the screen's button offers it again.
+    var askedToTurnOnLocation by rememberSaveable { mutableStateOf(false) }
+    val locationOff = (state.error as? HomeError.LocationRequired)?.cause == LocationCause.ServiceDisabled
+    LaunchedEffect(locationOff) {
+        if (locationOff && !askedToTurnOnLocation) {
+            askedToTurnOnLocation = true
+            turnOnLocation()
         }
     }
     var showDatePicker by remember { mutableStateOf(false) }
     var showPlaces by remember { mutableStateOf(false) }
     var showDownloadConfirm by remember { mutableStateOf(false) }
 
-    // First run: ask for notifications (Android 13+) once prayer times are
-    // on screen, after the location dialog, so the two never stack. Asked
-    // once; after that the Settings banner offers it.
+    // First run: ask for notifications (Android 13+) once the location step
+    // is settled (times on screen, or an error the user can read), never on
+    // top of a location dialog. Asked once; later the Settings banner offers it.
     val notificationLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { }
-    val hasTimes = state.days.isNotEmpty()
-    LaunchedEffect(hasTimes) {
-        if (hasTimes && shouldAskNotificationsOnce(context)) {
+    val locationStepSettled = !state.loading && !state.askForPermission && !locationDialogOpen &&
+        (state.days.isNotEmpty() || state.error != null)
+    LaunchedEffect(locationStepSettled) {
+        if (locationStepSettled && shouldAskNotificationsOnce(context)) {
             notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }
@@ -270,7 +320,7 @@ fun HomeScreen(visible: Boolean, onOpenSettings: () -> Unit) {
         if (result == SnackbarResult.ActionPerformed) {
             when (notice) {
                 is HomeNotice.LocationFailed -> when (notice.cause) {
-                    LocationCause.ServiceDisabled -> openLocationSettings(context)
+                    LocationCause.ServiceDisabled -> turnOnLocation()
                     LocationCause.PermissionLocked -> openAppSettings(context)
                     else -> requestLocation()
                 }
@@ -296,7 +346,7 @@ fun HomeScreen(visible: Boolean, onOpenSettings: () -> Unit) {
                     error = state.error!!,
                     onShareLocation = { requestLocation() },
                     onOpenAppSettings = { openAppSettings(context) },
-                    onOpenLocationSettings = { openLocationSettings(context) },
+                    onOpenLocationSettings = { turnOnLocation() },
                     onRetry = { vm.retry() },
                     onPlaces = { vm.loadSavedLocations(); showPlaces = true }
                 )
@@ -821,7 +871,7 @@ private fun PrayerEventCard(
                         pluralStringResource(
                             R.plurals.reminds_before,
                             reminder.prePrayerReminderMinutes,
-                            reminder.prePrayerReminderMinutes
+                            reminder.prePrayerReminderMinutes.toString()
                         )
                     } else {
                         stringResource(R.string.silent)
@@ -917,7 +967,7 @@ private fun DownloadProgressCard(progress: Int, total: Int) {
             )
             Spacer(Modifier.height(WonderSpacing.x8))
             Text(
-                text = stringResource(R.string.months_progress, progress, total),
+                text = stringResource(R.string.months_progress, progress.toString(), total.toString()),
                 style = MaterialTheme.typography.bodySmall,
                 color = WonderOffWhite
             )
@@ -957,7 +1007,7 @@ private fun SavedPlacesSheet(
         } else {
             state.savedLocations.forEachIndexed { index, place ->
                 MetaRow(
-                    label = stringResource(R.string.place_n, index + 1),
+                    label = stringResource(R.string.place_n, (index + 1).toString()),
                     value = place.name.ifBlank { stringResource(R.string.current_location) },
                     onClick = { vm.selectSavedLocation(place); onSelect() }
                 )
@@ -1010,7 +1060,7 @@ private fun OfflineDataDialog(
                     value = when {
                         status == null -> stringResource(R.string.nothing_saved)
                         complete -> stringResource(R.string.full_offline_saved)
-                        else -> stringResource(R.string.months_saved, status.cachedMonths, status.totalMonths)
+                        else -> stringResource(R.string.months_saved, status.cachedMonths.toString(), status.totalMonths.toString())
                     },
                     done = complete
                 )
@@ -1167,36 +1217,30 @@ private fun hasLocationPermission(context: Context): Boolean {
         coarse == PackageManager.PERMISSION_GRANTED
 }
 
-/**
- * True when the system dialog will NOT pop up anymore (denied twice).
- * False on first run (never asked) and after a single denial.
- */
-private fun isPermissionLocked(context: Context): Boolean {
-    if (hasLocationPermission(context)) return false
+private fun locationRationale(context: Context): Boolean {
     val activity = context as? Activity ?: return false
-    val rationale = ActivityCompat.shouldShowRequestPermissionRationale(
+    return ActivityCompat.shouldShowRequestPermissionRationale(
         activity, Manifest.permission.ACCESS_FINE_LOCATION
     ) || ActivityCompat.shouldShowRequestPermissionRationale(
         activity, Manifest.permission.ACCESS_COARSE_LOCATION
     )
-    // No rationale and no permission: either never asked (requestable) or
-    // denied twice (locked). Tell them apart via a one-bit memory.
-    if (rationale) {
-        context.getSharedPreferences(PERM_PREFS, Context.MODE_PRIVATE)
-            .edit().putBoolean(PERM_ASKED_BEFORE, true).apply()
-        return false
-    }
-    val askedBefore = context.getSharedPreferences(PERM_PREFS, Context.MODE_PRIVATE)
-        .getBoolean(PERM_ASKED_BEFORE, false)
-    if (!askedBefore) {
-        context.getSharedPreferences(PERM_PREFS, Context.MODE_PRIVATE)
-            .edit().putBoolean(PERM_ASKED_BEFORE, true).apply()
-    }
-    return askedBefore
 }
 
+/** Set only after the user actually answered the dialog, never before. */
+private fun answeredLocationBefore(context: Context): Boolean =
+    context.getSharedPreferences(PERM_PREFS, Context.MODE_PRIVATE).getBoolean(LOCATION_ANSWERED, false)
+
+private fun markLocationAnswered(context: Context) {
+    context.getSharedPreferences(PERM_PREFS, Context.MODE_PRIVATE)
+        .edit().putBoolean(LOCATION_ANSWERED, true).apply()
+}
+
+private fun isLocationOn(context: Context): Boolean =
+    context.getSystemService(LocationManager::class.java)
+        ?.let { LocationManagerCompat.isLocationEnabled(it) } ?: false
+
 private const val PERM_PREFS = "home_location_perm"
-private const val PERM_ASKED_BEFORE = "asked_before"
+private const val LOCATION_ANSWERED = "location_answered"
 
 private fun openAppSettings(context: Context) {
     val intent = Intent(

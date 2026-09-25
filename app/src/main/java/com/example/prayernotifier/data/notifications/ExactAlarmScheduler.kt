@@ -81,7 +81,7 @@ class ExactAlarmScheduler(
         plan.planned.forEach { item ->
             set(
                 item.fireAt.toInstant().toEpochMilli(),
-                pendingIntent(prayerAlarmSpec(item.prayer, item.timeString))
+                pendingIntent(prayerAlarmSpec(item.prayer, item.timeString, item.leadMinutes))
             )
         }
         set(
@@ -117,15 +117,21 @@ class ExactAlarmScheduler(
         const val ACTION_REPLENISH = "com.example.prayernotifier.ACTION_REPLENISH"
         const val EXTRA_PRAYER = "prayer"
         const val EXTRA_TIME = "time"
+        /** Minutes between the notification and the prayer (0 = on time). */
+        const val EXTRA_LEAD = "lead"
         const val REQUEST_REPLENISH = 100
 
         val REPLENISH_SPEC = AlarmSpec(REQUEST_REPLENISH, ACTION_REPLENISH, emptyMap())
 
         /** Stable IDs 1..5 (Fajr..Isha), so re-scheduling replaces cleanly. */
-        fun prayerAlarmSpec(prayer: String, timeString: String): AlarmSpec = AlarmSpec(
+        fun prayerAlarmSpec(prayer: String, timeString: String, leadMinutes: Int = 0): AlarmSpec = AlarmSpec(
             requestCode = PrayerMath.ORDER.indexOf(prayer) + 1,
             action = ACTION_PRAYER_ALARM,
-            extras = mapOf(EXTRA_PRAYER to prayer, EXTRA_TIME to timeString)
+            extras = mapOf(
+                EXTRA_PRAYER to prayer,
+                EXTRA_TIME to timeString,
+                EXTRA_LEAD to leadMinutes.toString()
+            )
         )
 
         fun notificationIdFor(prayer: String): Int =

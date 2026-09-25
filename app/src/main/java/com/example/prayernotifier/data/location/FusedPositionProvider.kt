@@ -26,6 +26,14 @@ class FusedPositionProvider(context: Context) : PositionProvider {
     private val client = LocationServices.getFusedLocationProviderClient(app)
 
     override suspend fun currentFix(): PositionOutcome = withContext(Dispatchers.IO) {
+        // Permission first: on a first run the user must see the permission
+        // dialog before anything else, even when location is switched off.
+        val fine = ContextCompat.checkSelfPermission(app, Manifest.permission.ACCESS_FINE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED
+        val coarse = ContextCompat.checkSelfPermission(app, Manifest.permission.ACCESS_COARSE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED
+        if (!fine && !coarse) return@withContext PositionOutcome.PermissionMissing
+
         val manager = app.getSystemService(LocationManager::class.java)
             ?: return@withContext PositionOutcome.ServiceDisabled
         val enabled = try {
@@ -37,12 +45,6 @@ class FusedPositionProvider(context: Context) : PositionProvider {
             false
         }
         if (!enabled) return@withContext PositionOutcome.ServiceDisabled
-
-        val fine = ContextCompat.checkSelfPermission(app, Manifest.permission.ACCESS_FINE_LOCATION) ==
-            PackageManager.PERMISSION_GRANTED
-        val coarse = ContextCompat.checkSelfPermission(app, Manifest.permission.ACCESS_COARSE_LOCATION) ==
-            PackageManager.PERMISSION_GRANTED
-        if (!fine && !coarse) return@withContext PositionOutcome.PermissionMissing
 
         // High accuracy engages GPS, which answers in seconds where the
         // balanced (network) provider can stall until the timeout. A fix up

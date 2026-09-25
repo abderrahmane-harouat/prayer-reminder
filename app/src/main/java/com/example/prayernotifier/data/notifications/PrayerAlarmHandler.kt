@@ -9,14 +9,23 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 /** Notification wording, so the handler stays free of Android resources. */
+/**
+ * Notification wording, so the handler stays free of Android resources.
+ * [leadMinutes] is how early the reminder fires: 0 means "it's time",
+ * anything else means "N minutes left".
+ */
 interface NotificationTexts {
-    fun title(): String
-    fun body(prayer: String, time: String): String
+    fun title(leadMinutes: Int): String
+    fun body(prayer: String, time: String, leadMinutes: Int): String
 }
 
 object EnglishNotificationTexts : NotificationTexts {
-    override fun title() = "Prayer time"
-    override fun body(prayer: String, time: String) = "Time for $prayer prayer · $time"
+    override fun title(leadMinutes: Int) = if (leadMinutes > 0) "Prayer reminder" else "Prayer time"
+    override fun body(prayer: String, time: String, leadMinutes: Int) = when {
+        leadMinutes <= 0 -> "Time for $prayer prayer · $time"
+        leadMinutes == 1 -> "1 minute until $prayer · $time"
+        else -> "$leadMinutes minutes until $prayer · $time"
+    }
 }
 
 /**
@@ -34,11 +43,11 @@ class PrayerAlarmHandler(
     private val currentYear: () -> Int = { Year.now().value },
     private val texts: NotificationTexts = EnglishNotificationTexts
 ) {
-    suspend fun onAlarmFired(prayer: String, timeString: String) {
+    suspend fun onAlarmFired(prayer: String, timeString: String, leadMinutes: Int = 0) {
         notifier.showPrayerNotification(
             ExactAlarmScheduler.notificationIdFor(prayer),
-            texts.title(),
-            texts.body(prayer, timeString)
+            texts.title(leadMinutes),
+            texts.body(prayer, timeString, leadMinutes)
         )
     }
 

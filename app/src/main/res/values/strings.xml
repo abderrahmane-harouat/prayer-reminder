@@ -42,8 +42,8 @@
     <string name="next">Next</string>
     <string name="silent">Silent</string>
     <plurals name="reminds_before">
-        <item quantity="one">Reminds %1$d min before</item>
-        <item quantity="other">Reminds %1$d min before</item>
+        <item quantity="one">Reminds %1$s min before</item>
+        <item quantity="other">Reminds %1$s min before</item>
     </plurals>
     <string name="today">Today</string>
     <string name="go_to_today">Go to today</string>
@@ -51,7 +51,7 @@
     <string name="places">Places</string>
     <string name="save_offline">Save offline</string>
     <string name="saving_offline_data">Saving offline data</string>
-    <string name="months_progress">%1$d / %2$d months</string>
+    <string name="months_progress">%1$s / %2$s months</string>
 
     <string name="location_needed_title">Location needed</string>
     <string name="location_needed_desc">Allow location access to load prayer times for your area.</string>
@@ -92,7 +92,7 @@
     <string name="cd_connection">Connection: %1$s. Tap to check it.</string>
 
     <string name="no_saved_places">No saved places yet.</string>
-    <string name="place_n">Place %1$d</string>
+    <string name="place_n">Place %1$s</string>
     <string name="use_current_location">Use current location</string>
 
     <string name="save_offline_title">Save offline data</string>
@@ -137,8 +137,8 @@
     <string name="increase">Increase</string>
     <string name="prayer_reminders">Prayer reminders</string>
     <plurals name="minutes_before">
-        <item quantity="one">%1$d min before</item>
-        <item quantity="other">%1$d min before</item>
+        <item quantity="one">%1$s min before</item>
+        <item quantity="other">%1$s min before</item>
     </plurals>
     <string name="at_prayer_time">At prayer time</string>
     <string name="sixty_min">60 min</string>
@@ -153,7 +153,7 @@
     <string name="saved_label">Saved</string>
     <string name="nothing_saved">Nothing saved yet</string>
     <string name="full_offline_saved">Full offline data saved</string>
-    <string name="months_saved">%1$d of %2$d months saved</string>
+    <string name="months_saved">%1$s of %2$s months saved</string>
     <string name="range_label">Range</string>
     <string name="works_offline">Works without internet once saved.</string>
     <string name="attribution">Prayer times by Aladhan</string>
@@ -169,6 +169,11 @@
     <!-- Notifications -->
     <string name="notif_title">Prayer time</string>
     <string name="notif_body">Time for %1$s prayer · %2$s</string>
+    <string name="notif_title_reminder">Prayer reminder</string>
+    <plurals name="notif_body_before">
+        <item quantity="one">%1$s minute until %2$s · %3$s</item>
+        <item quantity="other">%1$s minutes until %2$s · %3$s</item>
+    </plurals>
     <string name="channel_name">Prayer times</string>
     <string name="channel_desc">Prayer time reminders</string>
 </resources>

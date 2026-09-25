@@ -7,11 +7,15 @@ import java.time.LocalDate
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
-/** One notification to fire: which prayer, at what exact moment. */
+/**
+ * One notification to fire: which prayer, at what exact moment, and how
+ * many minutes before the prayer that is (0 = at the prayer time).
+ */
 data class PlannedNotification(
     val prayer: String,
     val fireAt: ZonedDateTime,
-    val timeString: String
+    val timeString: String,
+    val leadMinutes: Int = 0
 )
 
 data class DayPlan(val planned: List<PlannedNotification>, val skippedPast: Int)
@@ -42,7 +46,9 @@ object FireTimePlanner {
                 skipped++
                 continue
             }
-            planned += PlannedNotification(prayer, fireAt, at.format(TIME_FORMAT))
+            planned += PlannedNotification(
+                prayer, fireAt, at.format(TIME_FORMAT), prayerSettings.prePrayerReminderMinutes
+            )
         }
         return DayPlan(planned, skipped)
     }

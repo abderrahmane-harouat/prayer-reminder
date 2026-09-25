@@ -15,7 +15,7 @@ A calm, offline-first Android app that shows the five daily Islamic prayer times
 
 - **Prayer times for your location**: Fajr, Dhuhr, Asr, Maghrib and Isha, from your GPS position. Save places and switch between them.
 - **Countdown to the next prayer**, with the Hijri and Gregorian dates. Browse any other day, and go back to today with one tap.
-- **Reminders, not alarms**: a normal notification with a soft sound before each prayer. Choose the lead time for all prayers at once (on time, 5, 10, 15 or 30 minutes), or per prayer, and turn any prayer on or off.
+- **Reminders, not alarms**: a normal notification with a soft sound before each prayer, worded to match your setting ("5 minutes until Maghrib", or "Time for Maghrib prayer" when set to on time). Choose the lead time for all prayers at once (on time, 5, 10, 15 or 30 minutes), or per prayer, and turn any prayer on or off.
 - **Time corrections**: shift any prayer by up to ±30 minutes, and the Hijri date by ±2 days, to match your local mosque or moon sighting.
 - **Works offline**: download 10 years of prayer times for a place. With no internet the app uses what is saved.
 - **Connection status**: see whether you are on Wi-Fi, mobile data or offline, and tap to check that the prayer-times server is reachable.
@@ -57,6 +57,34 @@ cd prayer-notifier
 ```
 
 Or open the folder in Android Studio and press **Run**.
+
+### Signed release build
+
+Release builds are signed only on machines that have the private key. Create a `keystore.properties` file in the project root (it is git-ignored) that points to a keystore kept **outside** the repository:
+
+```properties
+storeFile=/absolute/path/to/your-release.jks
+storePassword=...
+keyAlias=...
+keyPassword=...
+```
+
+Then run `./gradlew :app:assembleRelease`; the APK is `app/build/outputs/apk/release/app-release.apk`. Without the file, release builds still work but are unsigned.
+
+### Test a reminder (debug builds only)
+
+Debug builds include a small test trigger that fires real reminders through the same path as scheduled ones, without changing the phone's clock (it is not part of release builds):
+
+```sh
+# All five prayers, one minute apart, starting in 10 seconds, "5 minutes before" wording
+adb shell am broadcast -a com.example.prayernotifier.debug.TEST_REMINDER \
+    -n com.example.prayernotifier/.debug.TestReminderReceiver
+
+# One prayer, custom delay and lead time (lead 0 = "it's time")
+adb shell am broadcast -a com.example.prayernotifier.debug.TEST_REMINDER \
+    -n com.example.prayernotifier/.debug.TestReminderReceiver \
+    --es prayer Maghrib --ei delay 10 --ei lead 5
+```
 
 ### Optional: the Thmanyah Arabic font
 

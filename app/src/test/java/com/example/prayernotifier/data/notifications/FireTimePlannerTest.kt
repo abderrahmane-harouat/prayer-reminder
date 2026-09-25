@@ -39,6 +39,10 @@ class FireTimePlannerTest {
         assertEquals(at(18, 42), fires["Maghrib"]) // Maghrib default reminds 10 min early.
         assertEquals(at(20, 15), fires["Isha"])
         assertEquals("05:12", plan.planned[0].timeString)
+        assertEquals(
+            AppSettings().getSettingsForPrayer("Fajr").prePrayerReminderMinutes,
+            plan.planned[0].leadMinutes
+        )
     }
 
     @Test fun `disabled prayer is excluded, not counted as skipped`() {

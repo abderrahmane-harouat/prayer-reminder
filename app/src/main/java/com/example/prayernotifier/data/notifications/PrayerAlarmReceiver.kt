@@ -19,7 +19,8 @@ class PrayerAlarmReceiver : BroadcastReceiver() {
                 when (intent.action) {
                     ExactAlarmScheduler.ACTION_PRAYER_ALARM -> handler.onAlarmFired(
                         intent.getStringExtra(ExactAlarmScheduler.EXTRA_PRAYER).orEmpty(),
-                        intent.getStringExtra(ExactAlarmScheduler.EXTRA_TIME).orEmpty()
+                        intent.getStringExtra(ExactAlarmScheduler.EXTRA_TIME).orEmpty(),
+                        intent.getStringExtra(ExactAlarmScheduler.EXTRA_LEAD)?.toIntOrNull() ?: 0
                     )
                     ExactAlarmScheduler.ACTION_REPLENISH,
                     Intent.ACTION_BOOT_COMPLETED -> handler.onDayChanged()

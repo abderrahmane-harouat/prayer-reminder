@@ -21,10 +21,11 @@ class AlarmSpecsTest {
     }
 
     @Test fun `prayer spec carries action and extras`() {
-        val spec = ExactAlarmScheduler.prayerAlarmSpec("Maghrib", "18:52")
+        val spec = ExactAlarmScheduler.prayerAlarmSpec("Maghrib", "18:52", leadMinutes = 10)
         assertEquals(ExactAlarmScheduler.ACTION_PRAYER_ALARM, spec.action)
         assertEquals("Maghrib", spec.extras[ExactAlarmScheduler.EXTRA_PRAYER])
         assertEquals("18:52", spec.extras[ExactAlarmScheduler.EXTRA_TIME])
+        assertEquals("10", spec.extras[ExactAlarmScheduler.EXTRA_LEAD])
     }
 
     @Test fun `notification ids match request codes`() {
