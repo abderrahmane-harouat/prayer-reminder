@@ -96,18 +96,21 @@ class PrayerTimesRepositoryTest {
     }
 
     @Test
-    fun `bulk download fills 120 months with progress and skips saved`() = runTest {
+    fun `bulk download fetches only missing months with smooth progress`() = runTest {
         // Pre-save 2 months; the bulk run must skip them.
         brain.getPrayerTimesForMonth(2025, 1, 21.4225, 39.8262)
         brain.getPrayerTimesForMonth(2025, 2, 21.4225, 39.8262)
         assertEquals(2, server.requestCount)
 
         val progress = mutableListOf<Pair<Int, Int>>()
-        brain.downloadOfflineData(21.4225, 39.8262) { done, total -> progress.add(done to total) }
+        val result = brain.downloadOfflineData(21.4225, 39.8262) { done, total -> progress.add(done to total) }
 
-        assertEquals(120, progress.size)
-        assertEquals(120 to 120, progress.last())
+        // Progress counts only the 118 missing months: 0, 1, ..., 118.
+        assertEquals(0 to 118, progress.first())
+        assertEquals(118 to 118, progress.last())
+        assertEquals(119, progress.size)
         assertEquals(118, server.requestCount - 2)
+        assertEquals(DownloadResult(downloaded = 118, failed = 0), result)
 
         val status = RoomPrayerTimesCache(db.prayerDayDao(), currentYear = { 2026 })
             .cacheStatus(21.4225, 39.8262)
@@ -122,9 +125,10 @@ class PrayerTimesRepositoryTest {
         monitor.online = false
 
         val progress = mutableListOf<Pair<Int, Int>>()
-        brain.downloadOfflineData(21.4225, 39.8262) { done, total -> progress.add(done to total) }
+        val result = brain.downloadOfflineData(21.4225, 39.8262) { done, total -> progress.add(done to total) }
 
-        assertEquals(listOf(120 to 120), progress)
+        assertTrue(progress.isEmpty())
+        assertEquals(DownloadResult(downloaded = 0, failed = 0), result)
         assertEquals(requests, server.requestCount)
     }
 

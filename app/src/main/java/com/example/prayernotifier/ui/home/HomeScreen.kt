@@ -13,6 +13,7 @@ import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.core.EaseOutCubic
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -101,10 +102,11 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.prayernotifier.R
 import com.example.prayernotifier.data.LocalUiGraph
+import com.example.prayernotifier.data.OfflineResult
+import com.example.prayernotifier.data.OfflineState
 import com.example.prayernotifier.data.PrayerMath
 import com.example.prayernotifier.data.PrayerTimings
 import com.example.prayernotifier.data.connectivity.NetworkKind
-import com.example.prayernotifier.data.persistence.CacheStatus
 import com.example.prayernotifier.data.persistence.PrayerNotificationSettings
 import com.example.prayernotifier.i18n.hijriMonthIndex
 import com.example.prayernotifier.i18n.prayerNameRes
@@ -112,6 +114,7 @@ import com.example.prayernotifier.ui.components.ArchShape
 import com.example.prayernotifier.ui.components.CircleButton
 import com.example.prayernotifier.ui.components.EyebrowLabel
 import com.example.prayernotifier.ui.components.MetaRow
+import com.example.prayernotifier.ui.components.OfflineProgress
 import com.example.prayernotifier.ui.components.OrnamentDivider
 import com.example.prayernotifier.ui.components.PrayerIllustration
 import com.example.prayernotifier.ui.components.WonderCard
@@ -170,6 +173,8 @@ fun HomeScreen(visible: Boolean, onOpenSettings: () -> Unit) {
             HomeViewModel(graph) as T
     })
     val state by vm.state.collectAsState()
+    // The app-wide offline download, shared with Settings.
+    val offline by graph.offline.state.collectAsState()
 
     // Returning from the Settings page doesn't fire ON_RESUME — pick up
     // edited adjustments / reminders here instead.
@@ -332,6 +337,34 @@ fun HomeScreen(visible: Boolean, onOpenSettings: () -> Unit) {
         }
     }
 
+    // Offline download finished (started here or in Settings): say how it went,
+    // once, whenever Home is the visible page.
+    val offlineMessage = when (val r = offline.result) {
+        OfflineResult.Complete -> stringResource(
+            R.string.notice_offline_saved,
+            offline.place?.name?.ifBlank { null } ?: stringResource(R.string.current_location)
+        )
+        is OfflineResult.Partial -> stringResource(R.string.notice_offline_partial, r.failed.toString())
+        OfflineResult.NoInternet -> stringResource(R.string.notice_offline)
+        null -> null
+    }
+    val offlineAction = if (offline.result is OfflineResult.Partial) stringResource(R.string.try_again) else null
+    LaunchedEffect(offline.result, visible) {
+        val result = offline.result ?: return@LaunchedEffect
+        if (!visible) return@LaunchedEffect
+        val answer = snackbar.showSnackbar(
+            message = offlineMessage.orEmpty(),
+            actionLabel = offlineAction,
+            duration = SnackbarDuration.Short
+        )
+        // Only after it was shown: clearing it earlier changes this effect's
+        // key and cancels the message before it appears.
+        graph.offline.consumeResult()
+        if (answer == SnackbarResult.ActionPerformed && result is OfflineResult.Partial) {
+            graph.offline.start()
+        }
+    }
+
     val today = LocalDate.now()
     val isToday = state.selectedDate == today
     val day = state.days.firstOrNull {
@@ -357,7 +390,7 @@ fun HomeScreen(visible: Boolean, onOpenSettings: () -> Unit) {
                 onToday = { vm.goToToday() },
                 onPickDate = { showDatePicker = true },
                 onPlaces = { vm.loadSavedLocations(); showPlaces = true },
-                onDownload = { vm.loadCacheStatus(); showDownloadConfirm = true }
+                onDownload = { graph.offline.refresh(); showDownloadConfirm = true }
             )
         }
 
@@ -420,10 +453,10 @@ fun HomeScreen(visible: Boolean, onOpenSettings: () -> Unit) {
 
     if (showDownloadConfirm) {
         OfflineDataDialog(
-            status = state.cacheStatus,
-            place = state.locationName,
+            offline = offline,
+            fallbackPlace = state.locationName,
             onDismiss = { showDownloadConfirm = false },
-            onConfirm = { showDownloadConfirm = false; vm.downloadOffline() }
+            onConfirm = { graph.offline.start() }
         )
     }
 }
@@ -695,9 +728,6 @@ private fun HomeContent(
                 )
             }
 
-            if (state.downloading) {
-                item { DownloadProgressCard(state.downloadProgress, state.downloadTotal) }
-            }
         }
 
         // One tap back to today whenever another date is shown.
@@ -714,7 +744,13 @@ private fun HomeContent(
       }
 
         // Fixed bottom bar, outside the scrolling list.
+        val offline by LocalUiGraph.current.offline.state.collectAsState()
         WonderActionBar(
+            downloadProgress = if (offline.running) {
+                if (offline.total > 0) offline.done / offline.total.toFloat() else 0f
+            } else {
+                null
+            },
             prayer = heroPrayer,
             isToday = isToday,
             onToday = onToday,
@@ -891,6 +927,8 @@ private fun PrayerEventCard(
  */
 @Composable
 private fun WonderActionBar(
+    /** 0..1 while the offline download runs, else null. */
+    downloadProgress: Float?,
     prayer: String,
     isToday: Boolean,
     onToday: () -> Unit,
@@ -931,47 +969,45 @@ private fun WonderActionBar(
             ) {
                 BarIcon(R.drawable.ph_calendar_blank_light, stringResource(R.string.pick_a_date), active = !isToday, onClick = onPickDate)
                 BarIcon(R.drawable.ph_map_pin_light, stringResource(R.string.places), active = false, onClick = onPlaces)
-                BarIcon(R.drawable.ph_cloud_arrow_down_light, stringResource(R.string.save_offline), active = false, onClick = onDownload)
+                BarIcon(
+                    R.drawable.ph_cloud_arrow_down_light,
+                    stringResource(R.string.save_offline),
+                    active = downloadProgress != null,
+                    onClick = onDownload,
+                    progress = downloadProgress
+                )
             }
         }
     }
 }
 
 @Composable
-private fun BarIcon(@DrawableRes icon: Int, label: String, active: Boolean, onClick: () -> Unit) {
+private fun BarIcon(
+    @DrawableRes icon: Int,
+    label: String,
+    active: Boolean,
+    onClick: () -> Unit,
+    progress: Float? = null
+) {
     IconButton(onClick = onClick, modifier = Modifier.size(56.dp)) {
+        if (progress != null) {
+            // A ring around the icon: the download is visible from anywhere on Home.
+            val ring by animateFloatAsState(progress, tween(400), label = "bar-progress")
+            CircularProgressIndicator(
+                progress = { ring },
+                modifier = Modifier.size(46.dp),
+                strokeWidth = 2.dp,
+                color = WonderAccent1,
+                trackColor = WonderBlack,
+                gapSize = 0.dp
+            )
+        }
         Icon(
             painter = painterResource(icon),
             contentDescription = label,
             modifier = Modifier.size(28.dp),
             tint = if (active) WonderAccent1 else WonderOffWhite
         )
-    }
-}
-
-@Composable
-private fun DownloadProgressCard(progress: Int, total: Int) {
-    WonderCard {
-        Column(Modifier.padding(WonderSpacing.x24)) {
-            Text(
-                text = stringResource(R.string.saving_offline_data).uppercase(),
-                style = MaterialTheme.typography.titleSmall,
-                color = WonderAccent2
-            )
-            Spacer(Modifier.height(WonderSpacing.x16))
-            LinearProgressIndicator(
-                progress = { if (total > 0) progress / total.toFloat() else 0f },
-                modifier = Modifier.fillMaxWidth(),
-                color = WonderAccent1,
-                trackColor = WonderBlack
-            )
-            Spacer(Modifier.height(WonderSpacing.x8))
-            Text(
-                text = stringResource(R.string.months_progress, progress.toString(), total.toString()),
-                style = MaterialTheme.typography.bodySmall,
-                color = WonderOffWhite
-            )
-        }
     }
 }
 
@@ -1031,13 +1067,15 @@ private fun SavedPlacesSheet(
  */
 @Composable
 private fun OfflineDataDialog(
-    status: CacheStatus?,
-    place: String,
+    offline: OfflineState,
+    fallbackPlace: String,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
+    val status = offline.status
     val complete = status?.isCached == true
     val partial = status != null && !complete && status.cachedMonths > 0
+    val place = offline.place?.name ?: fallbackPlace
     AlertDialog(
         onDismissRequest = onDismiss,
         shape = RoundedCornerShape(WonderCorners.card),
@@ -1068,31 +1106,43 @@ private fun OfflineDataDialog(
                     StatusLine(label = stringResource(R.string.range_label), value = status.yearsRange)
                 }
                 Spacer(Modifier.height(WonderSpacing.x8))
-                Text(
-                    text = stringResource(
-                        if (complete) R.string.offline_all_saved_desc else R.string.save_offline_desc
-                    ),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = WonderAccent2
-                )
+                if (offline.running) {
+                    OfflineProgress(offline.done, offline.total)
+                } else {
+                    Text(
+                        text = stringResource(
+                            if (complete) R.string.offline_all_saved_desc else R.string.save_offline_desc
+                        ),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = WonderAccent2
+                    )
+                }
             }
         },
         confirmButton = {
             Column(Modifier.fillMaxWidth()) {
-                if (complete) {
-                    WonderPrimaryButton(
+                when {
+                    // Downloading keeps going in the background; the ring on
+                    // the cloud icon and Settings show the same progress.
+                    offline.running -> WonderPrimaryButton(
+                        text = stringResource(R.string.hide),
+                        onClick = onDismiss,
+                        containerColor = WonderBlack
+                    )
+                    complete -> WonderPrimaryButton(
                         text = stringResource(R.string.done),
                         onClick = onDismiss,
                         containerColor = WonderBlack
                     )
-                } else {
-                    WonderPrimaryButton(
-                        text = stringResource(if (partial) R.string.download_remaining else R.string.download_now),
-                        onClick = onConfirm,
-                        containerColor = WonderBlack
-                    )
-                    Spacer(Modifier.height(WonderSpacing.x8))
-                    WonderTextButton(text = stringResource(R.string.later), onClick = onDismiss)
+                    else -> {
+                        WonderPrimaryButton(
+                            text = stringResource(if (partial) R.string.download_remaining else R.string.download_now),
+                            onClick = onConfirm,
+                            containerColor = WonderBlack
+                        )
+                        Spacer(Modifier.height(WonderSpacing.x8))
+                        WonderTextButton(text = stringResource(R.string.later), onClick = onDismiss)
+                    }
                 }
             }
         }

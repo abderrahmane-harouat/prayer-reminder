@@ -102,6 +102,9 @@
     <string name="offline_all_saved_desc">كل شيء محفوظ لهذا المكان. يعمل التطبيق دون إنترنت.</string>
     <string name="download_remaining">تنزيل الباقي</string>
     <string name="done">تم</string>
+    <string name="notice_offline_saved">حُفظت البيانات دون اتصال لـ%1$s.</string>
+    <string name="notice_offline_partial">حُفظت البيانات، لكن تعذّر تنزيل %1$s من الأشهر. أعد المحاولة للإكمال.</string>
+    <string name="hide">إخفاء</string>
 
     <string name="section_prayer_times">مواقيت الصلاة</string>
     <string name="section_notifications">التنبيهات</string>

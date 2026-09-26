@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.example.prayernotifier.data.PrayerMath
 import com.example.prayernotifier.data.UiGraph
 import com.example.prayernotifier.data.persistence.AppSettings
-import com.example.prayernotifier.data.persistence.CacheStatus
 import com.example.prayernotifier.data.persistence.PrayerNotificationSettings
 import com.example.prayernotifier.data.persistence.PrayerTimeAdjustments
 import kotlinx.coroutines.Dispatchers
@@ -19,12 +18,7 @@ import kotlinx.coroutines.withContext
 data class SettingsUiState(
     val loading: Boolean = true,
     val settings: AppSettings = AppSettings(),
-    val locationName: String? = null,
-    val cacheStatus: CacheStatus? = null,
-    val notificationsAllowed: Boolean = true,
-    val downloading: Boolean = false,
-    val downloadProgress: Int = 0,
-    val downloadTotal: Int = 0
+    val notificationsAllowed: Boolean = true
 )
 
 class SettingsViewModel(private val graph: UiGraph) : ViewModel() {
@@ -35,28 +29,11 @@ class SettingsViewModel(private val graph: UiGraph) : ViewModel() {
         refresh()
     }
 
+    /** Re-read saved settings; called whenever the Settings page is shown. */
     fun refresh() {
         viewModelScope.launch {
-            _state.update { it.copy(loading = true) }
             val settings = withContext(Dispatchers.IO) { graph.settingsStore.load() }
-            val current = withContext(Dispatchers.IO) {
-                graph.locationService.getCurrentSavedLocation()
-            }
-            val status = if (current != null) {
-                withContext(Dispatchers.IO) {
-                    graph.cache.cacheStatus(current.latitude, current.longitude)
-                }
-            } else {
-                null
-            }
-            _state.update {
-                it.copy(
-                    loading = false,
-                    settings = settings,
-                    locationName = current?.name,
-                    cacheStatus = status
-                )
-            }
+            _state.update { it.copy(loading = false, settings = settings) }
         }
     }
 
@@ -108,38 +85,6 @@ class SettingsViewModel(private val graph: UiGraph) : ViewModel() {
             current.withPrayerSettings(prayer, notifications)
                 .copy(timeAdjustments = current.timeAdjustments.with(prayer, adjustment))
         )
-    }
-
-    fun downloadOffline() {
-        viewModelScope.launch {
-            val current = withContext(Dispatchers.IO) {
-                graph.locationService.getCurrentSavedLocation()
-            } ?: return@launch
-            _state.update {
-                it.copy(downloading = true, downloadProgress = 0, downloadTotal = 0)
-            }
-            try {
-                withContext(Dispatchers.IO) {
-                    graph.repository.downloadOfflineData(
-                        current.latitude,
-                        current.longitude,
-                        onProgress = { done, total ->
-                            _state.update {
-                                it.copy(downloadProgress = done, downloadTotal = total)
-                            }
-                        }
-                    )
-                }
-                val status = withContext(Dispatchers.IO) {
-                    graph.cache.cacheStatus(current.latitude, current.longitude)
-                }
-                _state.update { it.copy(cacheStatus = status) }
-            } catch (_: Exception) {
-                // Card closes; status text explains when nothing is cached.
-            } finally {
-                _state.update { it.copy(downloading = false) }
-            }
-        }
     }
 
     fun prayerNames(): List<String> = PrayerMath.ORDER

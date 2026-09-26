@@ -45,6 +45,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -72,6 +73,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.prayernotifier.R
 import com.example.prayernotifier.data.LocalUiGraph
+import com.example.prayernotifier.data.OfflineState
 import com.example.prayernotifier.data.PrayerMath
 import com.example.prayernotifier.data.persistence.AppSettings
 import com.example.prayernotifier.data.persistence.PrayerNotificationSettings
@@ -80,6 +82,7 @@ import com.example.prayernotifier.i18n.prayerNameRes
 import com.example.prayernotifier.ui.components.CircleButton
 import com.example.prayernotifier.ui.components.EyebrowLabel
 import com.example.prayernotifier.ui.components.MetaRow
+import com.example.prayernotifier.ui.components.OfflineProgress
 import com.example.prayernotifier.ui.components.OrnamentDivider
 import com.example.prayernotifier.ui.components.WonderCard
 import com.example.prayernotifier.ui.components.WonderChip
@@ -108,7 +111,7 @@ private sealed interface Sheet {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(onBack: () -> Unit) {
+fun SettingsScreen(visible: Boolean, onBack: () -> Unit) {
     val graph = LocalUiGraph.current
     val context = LocalContext.current
     val vm: SettingsViewModel = viewModel(factory = object : ViewModelProvider.Factory {
@@ -117,6 +120,17 @@ fun SettingsScreen(onBack: () -> Unit) {
             SettingsViewModel(graph) as T
     })
     val state by vm.state.collectAsState()
+    // The app-wide offline download, shared with Home.
+    val offline by graph.offline.state.collectAsState()
+
+    // Both pages stay composed, so re-read everything each time Settings is
+    // opened: changes made on Home (location, a finished download) show up.
+    LaunchedEffect(visible) {
+        if (visible) {
+            vm.refresh()
+            graph.offline.refresh()
+        }
+    }
     var sheet by remember { mutableStateOf<Sheet?>(null) }
 
     // Re-check system capabilities whenever the screen resumes.
@@ -237,8 +251,8 @@ fun SettingsScreen(onBack: () -> Unit) {
                 item {
                     SectionEyebrow(stringResource(R.string.section_offline))
                     OfflineCard(
-                        state = state,
-                        onDownload = { vm.downloadOffline() }
+                        offline = offline,
+                        onDownload = { graph.offline.start() }
                     )
                 }
 
@@ -552,15 +566,17 @@ private fun PrayerRow(
 }
 
 @Composable
-private fun OfflineCard(state: SettingsUiState, onDownload: () -> Unit) {
-    val status = state.cacheStatus
+private fun OfflineCard(offline: OfflineState, onDownload: () -> Unit) {
+    val status = offline.status
+    val complete = status?.isCached == true
+    val partial = status != null && !complete && status.cachedMonths > 0
     WonderCard {
         MetaRow(
             label = stringResource(R.string.location_label),
             value = when {
-                state.locationName == null -> stringResource(R.string.no_location_yet)
-                state.locationName.isBlank() -> stringResource(R.string.current_location)
-                else -> state.locationName
+                offline.place == null -> stringResource(R.string.no_location_yet)
+                offline.place.name.isBlank() -> stringResource(R.string.current_location)
+                else -> offline.place.name
             }
         )
         WonderDivider()
@@ -568,10 +584,10 @@ private fun OfflineCard(state: SettingsUiState, onDownload: () -> Unit) {
             label = stringResource(R.string.saved_label),
             value = when {
                 status == null -> stringResource(R.string.nothing_saved)
-                status.isCached -> stringResource(R.string.full_offline_saved)
+                complete -> stringResource(R.string.full_offline_saved)
                 else -> stringResource(R.string.months_saved, status.cachedMonths.toString(), status.totalMonths.toString())
             },
-            trailingContent = if (status?.isCached == true) {
+            trailingContent = if (complete) {
                 {
                     Icon(
                         painter = painterResource(R.drawable.ph_check_circle_light),
@@ -584,48 +600,35 @@ private fun OfflineCard(state: SettingsUiState, onDownload: () -> Unit) {
                 null
             }
         )
-        if (status != null && !status.isCached) {
+        if (status != null) {
             WonderDivider()
             MetaRow(label = stringResource(R.string.range_label), value = status.yearsRange)
         }
-        if (state.downloading) {
-            Column(Modifier.padding(horizontal = WonderSpacing.x24, vertical = WonderSpacing.x16)) {
-                LinearProgressIndicator(
-                    progress = {
-                        if (state.downloadTotal > 0) {
-                            state.downloadProgress / state.downloadTotal.toFloat()
-                        } else {
-                            0f
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    color = WonderAccent1,
-                    trackColor = WonderBlack
-                )
-                Spacer(Modifier.height(WonderSpacing.x8))
+        when {
+            // Same live progress as the cloud button on Home.
+            offline.running -> OfflineProgress(
+                done = offline.done,
+                total = offline.total,
+                modifier = Modifier.padding(horizontal = WonderSpacing.x24, vertical = WonderSpacing.x16)
+            )
+            !complete && offline.place != null -> {
                 Text(
-                    text = stringResource(R.string.months_progress, state.downloadProgress.toString(), state.downloadTotal.toString()),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = WonderAccent2
+                    text = stringResource(R.string.works_offline),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = WonderCaption,
+                    modifier = Modifier.padding(horizontal = WonderSpacing.x24, vertical = WonderSpacing.x8)
+                )
+                WonderPrimaryButton(
+                    text = stringResource(if (partial) R.string.download_remaining else R.string.save_offline_title),
+                    onClick = onDownload,
+                    containerColor = WonderBlack,
+                    modifier = Modifier.padding(
+                        start = WonderSpacing.x16,
+                        end = WonderSpacing.x16,
+                        bottom = WonderSpacing.x16
+                    )
                 )
             }
-        } else if (status?.isCached != true) {
-            Text(
-                text = stringResource(R.string.works_offline),
-                style = MaterialTheme.typography.labelSmall,
-                color = WonderCaption,
-                modifier = Modifier.padding(horizontal = WonderSpacing.x24, vertical = WonderSpacing.x8)
-            )
-            WonderPrimaryButton(
-                text = stringResource(R.string.save_offline_title),
-                onClick = onDownload,
-                containerColor = WonderBlack,
-                modifier = Modifier.padding(
-                    start = WonderSpacing.x16,
-                    end = WonderSpacing.x16,
-                    bottom = WonderSpacing.x16
-                )
-            )
         }
     }
 }

@@ -10,9 +10,19 @@ abstract class PrayerDatabase : RoomDatabase() {
     abstract fun prayerDayDao(): PrayerDayDao
 }
 
+@Volatile
+private var instance: PrayerDatabase? = null
+
+/**
+ * The one database for the whole process (screens, alarm receiver, offline
+ * downloads). Room expects a single instance per file; separate ones would
+ * each keep their own connections and could see each other's writes late.
+ */
 fun prayerDatabase(context: Context): PrayerDatabase =
-    Room.databaseBuilder(
-        context.applicationContext,
-        PrayerDatabase::class.java,
-        "prayer.db"
-    ).build()
+    instance ?: synchronized(PrayerDatabase::class) {
+        instance ?: Room.databaseBuilder(
+            context.applicationContext,
+            PrayerDatabase::class.java,
+            "prayer.db"
+        ).build().also { instance = it }
+    }

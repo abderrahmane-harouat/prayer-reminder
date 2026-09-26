@@ -11,7 +11,6 @@ import com.example.prayernotifier.data.location.CurrentLocation
 import com.example.prayernotifier.data.location.LocationException
 import com.example.prayernotifier.data.location.SavedLocation
 import com.example.prayernotifier.data.persistence.AppSettings
-import com.example.prayernotifier.data.persistence.CacheStatus
 import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -63,15 +62,10 @@ data class HomeUiState(
     val selectedDate: LocalDate = LocalDate.now(),
     val settings: AppSettings = AppSettings(),
     val error: HomeError? = null,
-    val downloading: Boolean = false,
-    val downloadProgress: Int = 0,
-    val downloadTotal: Int = 0,
     val savedLocations: List<SavedLocation> = emptyList(),
     val askForPermission: Boolean = false,
     /** A location fix is in progress (can take a few seconds outdoors). */
     val locating: Boolean = false,
-    /** Offline-data coverage for the current place; null until loaded. */
-    val cacheStatus: CacheStatus? = null,
     val notice: HomeNotice? = null
 )
 
@@ -91,6 +85,7 @@ class HomeViewModel(private val graph: UiGraph) : ViewModel() {
             }
         }
         start()
+        graph.offline.refresh()
     }
 
     fun start() {
@@ -172,17 +167,6 @@ class HomeViewModel(private val graph: UiGraph) : ViewModel() {
 
     fun consumeNotice() = _state.update { it.copy(notice = null) }
 
-    /** Refresh what's saved offline for the current place (same data as Settings). */
-    fun loadCacheStatus() {
-        val loc = current ?: return
-        viewModelScope.launch {
-            val status = withContext(Dispatchers.IO) {
-                graph.cache.cacheStatus(loc.latitude, loc.longitude)
-            }
-            _state.update { it.copy(cacheStatus = status) }
-        }
-    }
-
     /**
      * The header's connection button: re-read the network, then really try
      * the prayer-times server over it. Reloads when that works and the
@@ -211,6 +195,7 @@ class HomeViewModel(private val graph: UiGraph) : ViewModel() {
                 graph.locationService.selectSavedLocation(location)
             }
             current = updated
+            graph.offline.refresh()
             _state.update {
                 it.copy(locationName = updated.name, selectedDate = LocalDate.now())
             }
@@ -231,33 +216,6 @@ class HomeViewModel(private val graph: UiGraph) : ViewModel() {
         viewModelScope.launch {
             val settings = withContext(Dispatchers.IO) { graph.settingsStore.load() }
             _state.update { it.copy(settings = settings) }
-        }
-    }
-
-    fun downloadOffline() {
-        val loc = current ?: return
-        viewModelScope.launch {
-            _state.update {
-                it.copy(downloading = true, downloadProgress = 0, downloadTotal = 0)
-            }
-            try {
-                withContext(Dispatchers.IO) {
-                    graph.repository.downloadOfflineData(
-                        loc.latitude,
-                        loc.longitude,
-                        onProgress = { done, total ->
-                            _state.update {
-                                it.copy(downloadProgress = done, downloadTotal = total)
-                            }
-                        }
-                    )
-                }
-            } catch (_: Exception) {
-                // Progress closes; the offline status below explains what's missing.
-            } finally {
-                _state.update { it.copy(downloading = false) }
-                loadCacheStatus()
-            }
         }
     }
 
@@ -285,6 +243,7 @@ class HomeViewModel(private val graph: UiGraph) : ViewModel() {
                 graph.locationService.refreshLocation()
             }
             current = fresh
+            graph.offline.refresh()
             _state.update {
                 it.copy(
                     locationName = fresh.name,

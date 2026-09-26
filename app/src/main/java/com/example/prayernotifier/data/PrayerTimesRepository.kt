@@ -46,38 +46,45 @@ class PrayerTimesRepository(
         }
     }
 
+    /**
+     * Saves every month of the offline range that isn't saved yet. The
+     * missing months are found first (local only), so progress runs from 0
+     * to the number that really needs downloading. Months that fail are
+     * counted, not hidden; running again retries just those.
+     */
     suspend fun downloadOfflineData(
         latitude: Double,
         longitude: Double,
         onProgress: (downloaded: Int, total: Int) -> Unit
-    ) {
-        val years = RoomPrayerTimesCache.yearsFor(currentYear())
-        val total = years.count() * 12
+    ): DownloadResult {
+        val missing = RoomPrayerTimesCache.yearsFor(currentYear())
+            .flatMap { year -> (1..12).map { month -> year to month } }
+            .filter { (year, month) -> cache.load(year, month, latitude, longitude).isEmpty() }
+        if (missing.isEmpty()) return DownloadResult(downloaded = 0, failed = 0)
+        if (!connectivity.refresh()) throw PrayerDataException.OfflineNoCache
 
-        if (!connectivity.refresh()) {
-            // Offline: only acceptable when everything is already saved.
-            if (cache.cacheStatus(latitude, longitude).isCached) {
-                onProgress(total, total)
-                return
-            }
-            throw PrayerDataException.OfflineNoCache
-        }
-
-        var done = 0
-        for (year in years) {
-            for (month in 1..12) {
-                done++
-                onProgress(done, total)
-                if (cache.load(year, month, latitude, longitude).isNotEmpty()) continue
-                try {
-                    val fresh = network.getPrayerTimesForMonth(year, month, latitude, longitude)
-                    if (fresh.isNotEmpty()) cache.save(fresh, year, month, latitude, longitude)
-                    // Small pause so we don't hammer the free API.
-                    delay(200)
-                } catch (e: Exception) {
-                    // Keep going with the next month, like the Flutter app.
+        var downloaded = 0
+        var failed = 0
+        onProgress(0, missing.size)
+        missing.forEachIndexed { index, (year, month) ->
+            try {
+                val fresh = network.getPrayerTimesForMonth(year, month, latitude, longitude)
+                if (fresh.isNotEmpty()) {
+                    cache.save(fresh, year, month, latitude, longitude)
+                    downloaded++
+                } else {
+                    failed++
                 }
+            } catch (e: Exception) {
+                failed++
             }
+            onProgress(index + 1, missing.size)
+            // Small pause so we don't hammer the free API.
+            if (index < missing.lastIndex) delay(150)
         }
+        return DownloadResult(downloaded, failed)
     }
 }
+
+/** Outcome of one offline download run. */
+data class DownloadResult(val downloaded: Int, val failed: Int)

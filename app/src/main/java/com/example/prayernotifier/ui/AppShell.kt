@@ -83,7 +83,7 @@ fun AppShell() {
                 translationX = direction * size.width * 0.25f * (1f - progress)
             }
         ) {
-            SettingsScreen(onBack = { showSettings = false })
+            SettingsScreen(visible = showSettings, onBack = { showSettings = false })
         }
     }
 }

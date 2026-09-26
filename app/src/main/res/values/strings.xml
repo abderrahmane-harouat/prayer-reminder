@@ -102,6 +102,9 @@
     <string name="offline_all_saved_desc">Everything is saved for this place. The app works without internet.</string>
     <string name="download_remaining">Download the rest</string>
     <string name="done">Done</string>
+    <string name="notice_offline_saved">Offline data saved for %1$s.</string>
+    <string name="notice_offline_partial">Saved, but %1$s months couldn\'t be downloaded. Try again to finish.</string>
+    <string name="hide">Hide</string>
 
     <!-- Settings -->
     <string name="section_prayer_times">Prayer times</string>

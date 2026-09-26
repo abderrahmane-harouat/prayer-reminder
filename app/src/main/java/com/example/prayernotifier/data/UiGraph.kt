@@ -34,8 +34,11 @@ import kotlinx.coroutines.cancel
  * UI-layer wiring. Thin glue only — logic lives in the tested data classes.
  * Exposed through [LocalUiGraph] so screens stay free of Android plumbing.
  */
-class UiGraph(app: Context) {
+class UiGraph private constructor(app: Context) {
     private val context = app.applicationContext
+
+    /** Work that must outlive any screen, e.g. the offline download. */
+    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     val connectivity: ConnectivityMonitor =
         DefaultConnectivityMonitor(SystemNetworkProbe(context))
@@ -51,6 +54,7 @@ class UiGraph(app: Context) {
     val network = PrayerRepository(AladhanApi.create())
     val repository = PrayerTimesRepository(network, cache, connectivity)
     val scheduler = ExactAlarmScheduler(context, RealAlarmOps(context))
+    val offline by lazy { OfflineDownloads(repository, cache, locationService, appScope) }
 
     /**
      * Re-plans today's alarms from stored data (offline-safe). Called after
@@ -71,6 +75,19 @@ class UiGraph(app: Context) {
     companion object {
         private val READABLE: DateTimeFormatter =
             DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.ENGLISH)
+
+        @Volatile
+        private var instance: UiGraph? = null
+
+        /**
+         * One graph per process, so state shared by screens (offline
+         * download, database) survives activity recreation, e.g. a
+         * language switch.
+         */
+        fun get(context: Context): UiGraph =
+            instance ?: synchronized(this) {
+                instance ?: UiGraph(context.applicationContext).also { instance = it }
+            }
     }
 }
 
@@ -79,7 +96,7 @@ val LocalUiGraph = compositionLocalOf<UiGraph> { error("UiGraph not provided") }
 @Composable
 fun UiGraphProvider(content: @Composable () -> Unit) {
     val app = androidx.compose.ui.platform.LocalContext.current.applicationContext
-    val graph = remember(app) { UiGraph(app) }
+    val graph = remember(app) { UiGraph.get(app) }
     // Live connectivity: re-probe on every network change (Wi-Fi <-> mobile
     // data, VPN, airplane mode) while the UI is alive.
     DisposableEffect(graph) {
