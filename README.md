@@ -58,6 +58,12 @@ cd prayer-notifier
 
 Or open the folder in Android Studio and press **Run**.
 
+Before committing, turn on the safety check that blocks signing keys, passwords and licensed font files from ever being committed (the repository is public):
+
+```sh
+git config core.hooksPath .githooks
+```
+
 ### Signed release build
 
 Release builds are signed only on machines that have the private key. Create a `keystore.properties` file in the project root (it is git-ignored) that points to a keystore kept **outside** the repository:

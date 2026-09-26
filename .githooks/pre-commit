@@ -1,0 +1,30 @@
+#!/bin/sh
+# Blocks commits that would publish secrets or licensed files (the repo is
+# public). Enable once per clone:  git config core.hooksPath .githooks
+# Bypass only if you are certain:   git commit --no-verify
+
+fail=0
+
+# 1. Files that must never be committed.
+bad_files=$(git diff --cached --name-only --diff-filter=ACMR | grep -iE \
+  '\.jks$|\.keystore$|\.p12$|\.pem$|(^|/)keystore\.properties$|(^|/)local\.properties$|google-services\.json$|(^|/)\.env$|res-licensed/|thmanyah')
+if [ -n "$bad_files" ]; then
+  echo "pre-commit: refusing to commit sensitive or licensed files:" >&2
+  echo "$bad_files" | sed 's/^/  - /' >&2
+  fail=1
+fi
+
+# 2. Secret-looking text in added lines.
+secrets=$(git diff --cached -U0 --diff-filter=ACMR | grep -E '^\+[^+]' | grep -iE \
+  '(store|key)Password *= *[^. ]|BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|AIza[0-9A-Za-z_-]{30,}|ghp_[0-9A-Za-z]{30,}|github_pat_[0-9A-Za-z_]{30,}|sk-[A-Za-z0-9]{30,}|sdk\.dir=/')
+if [ -n "$secrets" ]; then
+  echo "pre-commit: refusing to commit text that looks like a secret:" >&2
+  echo "$secrets" | cut -c1-120 | sed 's/^/  /' >&2
+  fail=1
+fi
+
+if [ "$fail" -ne 0 ]; then
+  echo "Unstage it (git restore --staged <file>) or move the secret out of the repo." >&2
+  exit 1
+fi
+exit 0
