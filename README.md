@@ -2,7 +2,7 @@
 
 **English** · [العربية](README.ar.md)
 
-A calm, offline-first Android app that shows the five daily Islamic prayer times for where you are, counts down to the next prayer, and reminds you before each one with a simple notification. It works in English and Arabic, and keeps working without internet once your prayer times are saved.
+A prayer times notifier for Android that works offline for 10 years. It shows the five daily prayer times for where you are and sends a reminder before each prayer. Download once and it keeps working for 10 years without internet. Available in Arabic and English, with no ads, no analytics and no tracking.
 
 <p>
   <img src="docs/screenshots/home_en.png" width="200" alt="Home screen: next prayer, countdown and today's prayers" />
